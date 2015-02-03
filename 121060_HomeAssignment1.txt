@@ -1,0 +1,93 @@
+
+
+
+
+1. Consider the following C code that calls fork(). If you assume that the child process is always scheduled before the parent process, what will be the output?
+
+int main()
+{
+ int i;
+ for (i = 0; i < 3; i++) {
+ if (fork() == 0) {
+ printf("Child sees i = %d\n", i);
+ exit(1);
+ } else {
+ printf("Parent sees i = %d\n", i);
+ }
+}
+}
+
+Answer:
+
+
+Child sees i = 0
+Parent sees i = 0
+Child sees i = 1
+Parent sees i = 1
+Child sees i = 2
+Parent sees i = 2
+
+Here since the child process is scheduled before parent process we get the printf statements showing the same thing that first fork returns 0 i.e. true showing that child is executed and then after exit status the parent process executes.
+
+
+2. Consider the following C code that creates and joins with two threads. Assuming that the threads are scheduled completely before the parent process (i.e., have a higher priority), what will be the output from running this program? Be careful! There is a significant trick!
+
+int a = 0;
+void *print_fn(void *ptr) 
+{
+ int tid = *(int *)ptr;
+ int b = 0;
+ a++; b++;
+ printf("id: %d a: %d b: %d\n", tid, a, b);
+ while (1); // Spin-wait here forever
+}
+int main()
+{
+ pthread_t t1, t2;
+ int tid1 = 1;
+ int tid2 = 2;
+ int ret1, ret2;
+ a++;
+ printf("Parent says a: %d\n", a);
+ ret1 = pthread_create(&t1, NULL, print_fn, (void *)&tid1);
+ ret2 = pthread_create(&t2, NULL, print_fn, (void *)&tid2);
+ if (ret1 || ret2) {
+ fprintf(stderr, "ERROR: pthread_create failed\n");
+ exit(1);
+ }
+ if (pthread_join(t1, NULL)) {
+ perror("join of t1");
+ exit(1);
+ }
+ if (pthread_join(t2, NULL)) {
+ perror("join of t2");
+ exit(1);
+ }
+ printf("Thread 1 and 2 complete\n");
+}
+
+
+Answer:
+
+Parent says a: 1
+id: 1 a: 2 b: 1
+id: 2 a: 3 b: 1
+
+Here during the very first creation of thread itself the “*print_fn” is called and the program enters into an infinite loop. Thus the program will execute for indefinite time.
+
+
+3. In some multi-threaded applications, m user-level threads are mapped to n kernel-level threads. Why can this be a good idea (compared to using only user-level or only kernel-level threads)?
+For what relative values of m and n is this mapping a possibility (or at all reasonable)? For which relative values is this the best choice?
+
+m >> n
+m > n
+m (approx) = n
+m < n
+m << n
+
+Answer:
+ 
+In such applications where ULT and KLT both are used as combined approach, thread creation is done in the user space. Bulk of scheduling and synchronization of threads is by the application
+In a combined approach, multiple threads within the same application can run in parallel on multiple processors, and a blocking system call need not block the entire process. It can get best of user-level and kernel-level implementations and works well given many short-lived user threads mapped to constant-size pool
+
+Also, M>N would be a good approach to follow as more number of threads are needed at user level to maintain and execute processes while KLT would be lesser in number and would be kept in reserve for threads/process requesting I/O or context switching etc. Also keeping more number of KLT increases the effort as it takes more cycles to inform kernel and switch contexts every time for a thread even if they belong to same process.
