@@ -26,6 +26,7 @@ Possible outcomes:
 0
 2.	0
 <child pid>
+***************************************************************************************************************
 Answer - 4 
 Mode Switch in Threads	Mode Switch in Process
 Memory is shared by threads, so there's no need to exchange memory or data during thread creation or switching.
